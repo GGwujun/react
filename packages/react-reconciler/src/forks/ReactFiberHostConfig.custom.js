@@ -61,10 +61,6 @@ export const warnsIfNotActing = $$$hostConfig.warnsIfNotActing;
 export const supportsMutation = $$$hostConfig.supportsMutation;
 export const supportsPersistence = $$$hostConfig.supportsPersistence;
 export const supportsHydration = $$$hostConfig.supportsHydration;
-export const DEPRECATED_mountResponderInstance =
-  $$$hostConfig.DEPRECATED_mountResponderInstance;
-export const DEPRECATED_unmountResponderInstance =
-  $$$hostConfig.DEPRECATED_unmountResponderInstance;
 export const getFundamentalComponentInstance =
   $$$hostConfig.getFundamentalComponentInstance;
 export const mountFundamentalComponent =
@@ -72,8 +68,6 @@ export const mountFundamentalComponent =
 export const shouldUpdateFundamentalComponent =
   $$$hostConfig.shouldUpdateFundamentalComponent;
 export const getInstanceFromNode = $$$hostConfig.getInstanceFromNode;
-export const removeInstanceEventHandles =
-  $$$hostConfig.removeInstanceEventHandles;
 export const isOpaqueHydratingObject = $$$hostConfig.isOpaqueHydratingObject;
 export const makeOpaqueHydratingObject =
   $$$hostConfig.makeOpaqueHydratingObject;
@@ -83,7 +77,6 @@ export const beforeActiveInstanceBlur = $$$hostConfig.beforeActiveInstanceBlur;
 export const afterActiveInstanceBlur = $$$hostConfig.afterActiveInstanceBlur;
 export const preparePortalMount = $$$hostConfig.preparePortalMount;
 export const prepareScopeUpdate = $$$hostConfig.preparePortalMount;
-export const removeScopeEventHandles = $$$hostConfig.removeScopeEventHandles;
 export const getInstanceFromScope = $$$hostConfig.getInstanceFromScope;
 
 // -------------------

@@ -27,9 +27,8 @@ import {
   enableProfilerTimer,
   enableFundamentalAPI,
   enableScopeAPI,
-  enableBlocksAPI,
 } from 'shared/ReactFeatureFlags';
-import {NoEffect, Placement} from './ReactSideEffectTags';
+import {NoFlags, Placement, StaticMask} from './ReactFiberFlags';
 import {ConcurrentRoot, BlockingRoot} from './ReactRootTags';
 import {
   IndeterminateComponent,
@@ -53,7 +52,6 @@ import {
   LazyComponent,
   FundamentalComponent,
   ScopeComponent,
-  Block,
   OffscreenComponent,
   LegacyHiddenComponent,
 } from './ReactWorkTags';
@@ -88,7 +86,6 @@ import {
   REACT_LAZY_TYPE,
   REACT_FUNDAMENTAL_TYPE,
   REACT_SCOPE_TYPE,
-  REACT_BLOCK_TYPE,
   REACT_OFFSCREEN_TYPE,
   REACT_LEGACY_HIDDEN_TYPE,
 } from 'shared/ReactSymbols';
@@ -143,11 +140,9 @@ function FiberNode(
   this.mode = mode;
 
   // Effects
-  this.effectTag = NoEffect;
-  this.nextEffect = null;
-
-  this.firstEffect = null;
-  this.lastEffect = null;
+  this.flags = NoFlags;
+  this.subtreeFlags = NoFlags;
+  this.deletions = null;
 
   this.lanes = NoLanes;
   this.childLanes = NoLanes;
@@ -241,11 +236,6 @@ export function resolveLazyComponentTag(Component: Function): WorkTag {
     if ($$typeof === REACT_MEMO_TYPE) {
       return MemoComponent;
     }
-    if (enableBlocksAPI) {
-      if ($$typeof === REACT_BLOCK_TYPE) {
-        return Block;
-      }
-    }
   }
   return IndeterminateComponent;
 }
@@ -285,13 +275,8 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
     workInProgress.type = current.type;
 
     // We already have an alternate.
-    // Reset the effect tag.
-    workInProgress.effectTag = NoEffect;
-
-    // The effect list is no longer valid.
-    workInProgress.nextEffect = null;
-    workInProgress.firstEffect = null;
-    workInProgress.lastEffect = null;
+    workInProgress.subtreeFlags = NoFlags;
+    workInProgress.deletions = null;
 
     if (enableProfilerTimer) {
       // We intentionally reset, rather than copy, actualDuration & actualStartTime.
@@ -303,6 +288,9 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
     }
   }
 
+  // Reset all effects except static ones.
+  // Static effects are not specific to a render.
+  workInProgress.flags = current.flags & StaticMask;
   workInProgress.childLanes = current.childLanes;
   workInProgress.lanes = current.lanes;
 
@@ -320,7 +308,6 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
       : {
           lanes: currentDependencies.lanes,
           firstContext: currentDependencies.firstContext,
-          responders: currentDependencies.responders,
         };
 
   // These will be overridden during the parent's reconciliation
@@ -367,12 +354,7 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
 
   // Reset the effect tag but keep any Placement tags, since that's something
   // that child fiber is setting, not the reconciliation.
-  workInProgress.effectTag &= Placement;
-
-  // The effect list is no longer valid.
-  workInProgress.nextEffect = null;
-  workInProgress.firstEffect = null;
-  workInProgress.lastEffect = null;
+  workInProgress.flags &= Placement;
 
   const current = workInProgress.alternate;
   if (current === null) {
@@ -381,6 +363,7 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
     workInProgress.lanes = renderLanes;
 
     workInProgress.child = null;
+    workInProgress.subtreeFlags = NoFlags;
     workInProgress.memoizedProps = null;
     workInProgress.memoizedState = null;
     workInProgress.updateQueue = null;
@@ -401,6 +384,8 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
     workInProgress.lanes = current.lanes;
 
     workInProgress.child = current.child;
+    workInProgress.subtreeFlags = current.subtreeFlags;
+    workInProgress.deletions = null;
     workInProgress.memoizedProps = current.memoizedProps;
     workInProgress.memoizedState = current.memoizedState;
     workInProgress.updateQueue = current.updateQueue;
@@ -416,7 +401,6 @@ export function resetWorkInProgress(workInProgress: Fiber, renderLanes: Lanes) {
         : {
             lanes: currentDependencies.lanes,
             firstContext: currentDependencies.firstContext,
-            responders: currentDependencies.responders,
           };
 
     if (enableProfilerTimer) {
@@ -496,7 +480,11 @@ export function createFiberFromTypeAndProps(
         return createFiberFromOffscreen(pendingProps, mode, lanes, key);
       case REACT_LEGACY_HIDDEN_TYPE:
         return createFiberFromLegacyHidden(pendingProps, mode, lanes, key);
-
+      case REACT_SCOPE_TYPE:
+        if (enableScopeAPI) {
+          return createFiberFromScope(type, pendingProps, mode, lanes, key);
+        }
+      // eslint-disable-next-line no-fallthrough
       default: {
         if (typeof type === 'object' && type !== null) {
           switch (type.$$typeof) {
@@ -520,9 +508,6 @@ export function createFiberFromTypeAndProps(
               fiberTag = LazyComponent;
               resolvedType = null;
               break getTag;
-            case REACT_BLOCK_TYPE:
-              fiberTag = Block;
-              break getTag;
             case REACT_FUNDAMENTAL_TYPE:
               if (enableFundamentalAPI) {
                 return createFiberFromFundamental(
@@ -534,16 +519,6 @@ export function createFiberFromTypeAndProps(
                 );
               }
               break;
-            case REACT_SCOPE_TYPE:
-              if (enableScopeAPI) {
-                return createFiberFromScope(
-                  type,
-                  pendingProps,
-                  mode,
-                  lanes,
-                  key,
-                );
-              }
           }
         }
         let info = '';
@@ -580,6 +555,10 @@ export function createFiberFromTypeAndProps(
   fiber.elementType = type;
   fiber.type = resolvedType;
   fiber.lanes = lanes;
+
+  if (__DEV__) {
+    fiber._debugOwner = owner;
+  }
 
   return fiber;
 }
@@ -825,10 +804,9 @@ export function assignFiberPropertiesInDEV(
   target.memoizedState = source.memoizedState;
   target.dependencies = source.dependencies;
   target.mode = source.mode;
-  target.effectTag = source.effectTag;
-  target.nextEffect = source.nextEffect;
-  target.firstEffect = source.firstEffect;
-  target.lastEffect = source.lastEffect;
+  target.flags = source.flags;
+  target.subtreeFlags = source.subtreeFlags;
+  target.deletions = source.deletions;
   target.lanes = source.lanes;
   target.childLanes = source.childLanes;
   target.alternate = source.alternate;

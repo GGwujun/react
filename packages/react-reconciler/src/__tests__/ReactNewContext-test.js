@@ -1083,6 +1083,21 @@ describe('ReactNewContext', () => {
       );
     });
 
+    it('warns if no value prop provided', () => {
+      const Context = React.createContext();
+
+      ReactNoop.render(
+        <Context.Provider anyPropNameOtherThanValue="value could be anything" />,
+      );
+
+      expect(() => expect(Scheduler).toFlushWithoutYielding()).toErrorDev(
+        'The `value` prop is required for the `<Context.Provider>`. Did you misspell it or forget to pass it?',
+        {
+          withoutStack: true,
+        },
+      );
+    });
+
     it('warns if multiple renderers concurrently render the same context', () => {
       spyOnDev(console, 'error');
       const Context = React.createContext(0);
@@ -1510,7 +1525,7 @@ describe('ReactNewContext', () => {
           'You passed: 0.\n\n' +
           'Did you call array.map(useContext)? ' +
           'Calling Hooks inside a loop is not supported. ' +
-          'Learn more at https://fb.me/rules-of-hooks',
+          'Learn more at https://reactjs.org/link/rules-of-hooks',
       );
     });
 
@@ -1528,7 +1543,7 @@ describe('ReactNewContext', () => {
           '1. You might have mismatching versions of React and the renderer (such as React DOM)\n' +
           '2. You might be breaking the Rules of Hooks\n' +
           '3. You might have more than one copy of React in the same app\n' +
-          'See https://fb.me/react-invalid-hook-call for tips about how to debug and fix this problem.',
+          'See https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.',
       );
     });
 
@@ -1611,7 +1626,7 @@ describe('ReactNewContext', () => {
     // caused by unwinding the context from wrong point.
     ReactNoop.render(
       <errorInCompletePhase>
-        <Context.Provider />
+        <Context.Provider value={null} />
       </errorInCompletePhase>,
     );
     expect(Scheduler).toFlushAndThrow('Error in host config.');

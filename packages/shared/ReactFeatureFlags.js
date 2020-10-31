@@ -15,6 +15,10 @@ export const enableFilterEmptyStringAttributesDOM = false;
 // Intended to enable React core members to more easily debug scheduling issues in DEV builds.
 export const enableDebugTracing = false;
 
+// Adds user timing marks for e.g. state updates, suspense, and work loop stuff,
+// for an experimental scheduling profiler tool.
+export const enableSchedulingProfiler = __PROFILE__ && __EXPERIMENTAL__;
+
 // Helps identify side effects in render-phase lifecycle hooks and setState
 // reducers by double invoking them in Strict Mode.
 export const debugRenderPhaseSideEffectsForStrictMode = __DEV__;
@@ -40,7 +44,6 @@ export const enableSuspenseServerRenderer = __EXPERIMENTAL__;
 export const enableSelectiveHydration = __EXPERIMENTAL__;
 
 // Flight experiments
-export const enableBlocksAPI = __EXPERIMENTAL__;
 export const enableLazyElements = __EXPERIMENTAL__;
 
 // Only used in www builds.
@@ -48,9 +51,6 @@ export const enableSchedulerDebugging = false;
 
 // Disable javascript: URL strings in href for XSS protection.
 export const disableJavaScriptURLs = false;
-
-// Experimental React Flare event system and event components support.
-export const enableDeprecatedFlareAPI = false;
 
 // Experimental Host Component support.
 export const enableFundamentalAPI = false;
@@ -91,6 +91,12 @@ export const enableComponentStackLocations = true;
 
 export const enableNewReconciler = false;
 
+// Errors that are thrown while unmounting (or after in the case of passive effects)
+// should bypass any error boundaries that are also unmounting (or have unmounted)
+// and be handled by the nearest still-mounted boundary.
+// If there are no still-mounted boundaries, the errors should be rethrown.
+export const skipUnmountedBoundaries = false;
+
 // --------------------------
 // Future APIs to be deprecated
 // --------------------------
@@ -111,9 +117,6 @@ export const disableModulePatternComponents = false;
 // We should remove this flag once the above flag becomes enabled
 export const warnUnstableRenderSubtreeIntoContainer = false;
 
-// Modern event system where events get registered at roots
-export const enableModernEventSystem = false;
-
 // Support legacy Primer support on internal FB www
 export const enableLegacyFBSupport = false;
 
@@ -123,3 +126,14 @@ export const enableLegacyFBSupport = false;
 // interleaved event. Remove this flag once we have migrated to the
 // new behavior.
 export const deferRenderPhaseUpdateToNextBatch = true;
+
+// Replacement for runWithPriority in React internals.
+export const decoupleUpdatePriorityFromScheduler = false;
+
+export const enableDiscreteEventFlushingChange = false;
+
+export const enableDoubleInvokingEffects = false;
+
+export const enableUseRefAccessWarning = false;
+
+export const enableRecursiveCommitTraversal = false;
