@@ -44,6 +44,10 @@ const environmentFlags = {
 
   // Use this for tests that are known to be broken.
   FIXME: false,
+
+  // Turn this flag back on (or delete) once the effect list is removed in favor
+  // of a depth-first traversal using `subtreeTags`.
+  dfsEffectsRefactor: false,
 };
 
 function getTestFlags() {
@@ -74,6 +78,7 @@ function getTestFlags() {
       channel: releaseChannel,
       modern: releaseChannel === 'modern',
       classic: releaseChannel === 'classic',
+      source: !process.env.IS_BUILD,
       www,
 
       ...featureFlags,

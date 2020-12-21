@@ -7,7 +7,7 @@
  * @flow
  */
 
-import {gte} from 'semver';
+import {gt, gte} from 'semver';
 import {
   ComponentFilterDisplayName,
   ComponentFilterElementType,
@@ -166,8 +166,10 @@ export function getInternalReactConstants(
   // **********************************************************
   // The section below is copied from files in React repo.
   // Keep it in sync, and add version guards if it changes.
-  if (gte(version, '17.0.0-alpha')) {
-    // TODO (Offscreen) Update the version number above to reflect the first Offscreen alpha/beta release.
+  //
+  // TODO Update the gt() check below to be gte() whichever the next version number is.
+  // Currently the version in Git is 17.0.2 (but that version has not been/may not end up being released).
+  if (gt(version, '17.0.1')) {
     ReactTypeOfWork = {
       ClassComponent: 1,
       ContextConsumer: 9,
@@ -185,10 +187,41 @@ export function getInternalReactConstants(
       IncompleteClassComponent: 17,
       IndeterminateComponent: 2,
       LazyComponent: 16,
+      LegacyHiddenComponent: 23,
       MemoComponent: 14,
       Mode: 8,
       OffscreenComponent: 22, // Experimental
       Profiler: 12,
+      ScopeComponent: 21, // Experimental
+      SimpleMemoComponent: 15,
+      SuspenseComponent: 13,
+      SuspenseListComponent: 19, // Experimental
+      YieldComponent: -1, // Removed
+    };
+  } else if (gte(version, '17.0.0-alpha')) {
+    ReactTypeOfWork = {
+      ClassComponent: 1,
+      ContextConsumer: 9,
+      ContextProvider: 10,
+      CoroutineComponent: -1, // Removed
+      CoroutineHandlerPhase: -1, // Removed
+      DehydratedSuspenseComponent: 18, // Behind a flag
+      ForwardRef: 11,
+      Fragment: 7,
+      FunctionComponent: 0,
+      HostComponent: 5,
+      HostPortal: 4,
+      HostRoot: 3,
+      HostText: 6,
+      IncompleteClassComponent: 17,
+      IndeterminateComponent: 2,
+      LazyComponent: 16,
+      LegacyHiddenComponent: 24,
+      MemoComponent: 14,
+      Mode: 8,
+      OffscreenComponent: 23, // Experimental
+      Profiler: 12,
+      ScopeComponent: 21, // Experimental
       SimpleMemoComponent: 15,
       SuspenseComponent: 13,
       SuspenseListComponent: 19, // Experimental
@@ -212,10 +245,12 @@ export function getInternalReactConstants(
       IncompleteClassComponent: 17,
       IndeterminateComponent: 2,
       LazyComponent: 16,
+      LegacyHiddenComponent: -1,
       MemoComponent: 14,
       Mode: 8,
       OffscreenComponent: -1, // Experimental
       Profiler: 12,
+      ScopeComponent: -1, // Experimental
       SimpleMemoComponent: 15,
       SuspenseComponent: 13,
       SuspenseListComponent: 19, // Experimental
@@ -239,10 +274,12 @@ export function getInternalReactConstants(
       IncompleteClassComponent: -1, // Doesn't exist yet
       IndeterminateComponent: 4,
       LazyComponent: -1, // Doesn't exist yet
+      LegacyHiddenComponent: -1,
       MemoComponent: -1, // Doesn't exist yet
       Mode: 10,
       OffscreenComponent: -1, // Experimental
       Profiler: 15,
+      ScopeComponent: -1, // Experimental
       SimpleMemoComponent: -1, // Doesn't exist yet
       SuspenseComponent: 16,
       SuspenseListComponent: -1, // Doesn't exist yet
@@ -266,10 +303,12 @@ export function getInternalReactConstants(
       IncompleteClassComponent: -1, // Doesn't exist yet
       IndeterminateComponent: 0,
       LazyComponent: -1, // Doesn't exist yet
+      LegacyHiddenComponent: -1,
       MemoComponent: -1, // Doesn't exist yet
       Mode: 11,
       OffscreenComponent: -1, // Experimental
       Profiler: 15,
+      ScopeComponent: -1, // Experimental
       SimpleMemoComponent: -1, // Doesn't exist yet
       SuspenseComponent: 16,
       SuspenseListComponent: -1, // Doesn't exist yet
@@ -301,7 +340,11 @@ export function getInternalReactConstants(
     HostPortal,
     HostText,
     Fragment,
+    LazyComponent,
+    LegacyHiddenComponent,
     MemoComponent,
+    OffscreenComponent,
+    ScopeComponent,
     SimpleMemoComponent,
     SuspenseComponent,
     SuspenseListComponent,
@@ -354,11 +397,22 @@ export function getInternalReactConstants(
       case HostText:
       case Fragment:
         return null;
+      case LazyComponent:
+        // This display name will not be user visible.
+        // Once a Lazy component loads its inner component, React replaces the tag and type.
+        // This display name will only show up in console logs when DevTools DEBUG mode is on.
+        return 'Lazy';
       case MemoComponent:
       case SimpleMemoComponent:
         return getDisplayName(resolvedType, 'Anonymous');
       case SuspenseComponent:
         return 'Suspense';
+      case LegacyHiddenComponent:
+        return 'LegacyHidden';
+      case OffscreenComponent:
+        return 'Offscreen';
+      case ScopeComponent:
+        return 'Scope';
       case SuspenseListComponent:
         return 'SuspenseList';
       default:
@@ -491,12 +545,21 @@ export function attach(
     }
   }
 
-  const debug = (name: string, fiber: Fiber, parentFiber: ?Fiber): void => {
+  const debug = (
+    name: string,
+    fiber: Fiber,
+    parentFiber: ?Fiber,
+    extraString?: string = '',
+  ): void => {
     if (__DEBUG__) {
-      const displayName = getDisplayNameForFiber(fiber) || 'null';
+      const displayName =
+        fiber.tag + ':' + (getDisplayNameForFiber(fiber) || 'null');
       const id = getFiberID(fiber);
-      const parentDisplayName =
-        (parentFiber != null && getDisplayNameForFiber(parentFiber)) || 'null';
+      const parentDisplayName = parentFiber
+        ? parentFiber.tag +
+          ':' +
+          (getDisplayNameForFiber(parentFiber) || 'null')
+        : '';
       const parentID = parentFiber ? getFiberID(parentFiber) : '';
       // NOTE: calling getFiberID or getPrimaryFiber is unsafe here
       // because it will put them in the map. For now, we'll omit them.
@@ -504,10 +567,11 @@ export function attach(
       console.log(
         `[renderer] %c${name} %c${displayName} (${id}) %c${
           parentFiber ? `${parentDisplayName} (${parentID})` : ''
-        }`,
+        } %c${extraString}`,
         'color: red; font-weight: bold;',
         'color: blue;',
         'color: purple;',
+        'color: black;',
       );
     }
   };
@@ -1179,7 +1243,12 @@ export function attach(
 
   function recordUnmount(fiber: Fiber, isSimulated: boolean) {
     if (__DEBUG__) {
-      debug('recordUnmount()', fiber);
+      debug(
+        'recordUnmount()',
+        fiber,
+        null,
+        isSimulated ? 'unmount is simulated' : '',
+      );
     }
 
     if (trackedPathMatchFiber !== null) {
@@ -1197,13 +1266,14 @@ export function attach(
     const isRoot = fiber.tag === HostRoot;
     const primaryFiber = getPrimaryFiber(fiber);
     if (!fiberToIDMap.has(primaryFiber)) {
-      // If we've never seen this Fiber, it might be because
-      // it is inside a non-current Suspense fragment tree,
-      // and so the store is not even aware of it.
-      // In that case we can just ignore it, or otherwise
-      // there will be errors later on.
+      // If we've never seen this Fiber, it might be inside of a legacy render Suspense fragment (so the store is not even aware of it).
+      // In that case we can just ignore it or it will cause errors later on.
+      // One example of this is a Lazy component that never resolves before being unmounted.
+      //
+      // TODO: This is fragile and can obscure actual bugs.
+      //
+      // Calling getPrimaryFiber() lazily adds fibers to the Map, so clean up after ourselves before returning.
       primaryFibers.delete(primaryFiber);
-      // TODO: this is fragile and can obscure actual bugs.
       return;
     }
     const id = getFiberID(primaryFiber);
