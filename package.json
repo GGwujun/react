@@ -15,7 +15,7 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.11.0",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
     "@babel/plugin-syntax-import-meta": "^7.10.4",
-    "@babel/plugin-syntax-jsx": "^7.10.4",
+    "@babel/plugin-syntax-jsx": "^7.12.1",
     "@babel/plugin-transform-arrow-functions": "^7.10.4",
     "@babel/plugin-transform-async-to-generator": "^7.10.4",
     "@babel/plugin-transform-block-scoped-functions": "^7.10.4",
@@ -58,7 +58,6 @@
     "eslint-plugin-no-for-of-loops": "^1.0.0",
     "eslint-plugin-no-function-declare-after-return": "^1.0.0",
     "eslint-plugin-react": "^6.7.1",
-    "eslint-plugin-react-internal": "link:./scripts/eslint-rules",
     "fbjs-scripts": "1.2.0",
     "filesize": "^6.0.1",
     "flow-bin": "0.97",
@@ -139,5 +138,8 @@
     "version-check": "node ./scripts/tasks/version-check.js",
     "merge-fork": "node ./scripts/merge-fork/merge-fork.js",
     "replace-fork": "node ./scripts/merge-fork/replace-fork.js"
+  },
+  "dependencies": {
+    "@babel/plugin-transform-flow-strip-types": "^7.12.10"
   }
 }

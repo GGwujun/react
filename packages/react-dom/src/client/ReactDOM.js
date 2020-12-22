@@ -7,6 +7,8 @@
  * @flow
  */
 
+/* eslint-disable*/
+
 import type {ReactNodeList} from 'shared/ReactTypes';
 import type {Container} from './ReactDOMHostConfig';
 

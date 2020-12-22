@@ -7,6 +7,8 @@
  * @flow
  */
 
+/* eslint-disable*/
+
 // Helpers to patch console.logs to avoid logging during side-effect free
 // replaying on render function. This currently only patches the object
 // lazily which won't cover if the log function was extracted eagerly.

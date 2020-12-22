@@ -7,6 +7,8 @@
  * @flow
  */
 
+/* eslint-disable*/
+
 import type {Thenable, Wakeable} from 'shared/ReactTypes';
 import type {Fiber, FiberRoot} from './ReactInternalTypes';
 import type {Lanes, Lane} from './ReactFiberLane.old';
