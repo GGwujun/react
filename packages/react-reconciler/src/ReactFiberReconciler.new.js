@@ -313,7 +313,7 @@ export function updateContainer(
     }
     update.callback = callback;
   }
-
+  debugger;
   enqueueUpdate(current, update);
   scheduleUpdateOnFiber(current, lane, eventTime);
 
